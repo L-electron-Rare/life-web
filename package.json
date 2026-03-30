@@ -1,0 +1,10 @@
+{
+  "name": "placeholder",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "echo TODO",
+    "test": "echo TODO",
+    "build": "echo TODO"
+  }
+}
