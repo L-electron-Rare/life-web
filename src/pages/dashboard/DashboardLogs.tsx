@@ -1,5 +1,6 @@
 import { Terminal } from "../../components/ui/Terminal";
 
+// TODO: replace with real log streaming endpoint
 const mockLogs = [
   { timestamp: "09:15:22", level: "INFO" as const, message: "chat req provider=ollama model=qwen3:4b tokens=42" },
   { timestamp: "09:15:23", level: "INFO" as const, message: "response 234ms content_len=156" },

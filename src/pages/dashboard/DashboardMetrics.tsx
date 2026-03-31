@@ -1,6 +1,7 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { GlassCard } from "../../components/ui/GlassCard";
 
+// TODO: replace with real /stats metrics when available
 const mockLatency = Array.from({ length: 20 }, (_, i) => ({
   time: `${i}m`, p50: 100 + Math.random() * 150, p99: 400 + Math.random() * 800,
 }));

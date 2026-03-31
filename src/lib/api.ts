@@ -49,5 +49,13 @@ export const api = {
   infra: {
     containers: () => request<{ containers: { name: string; image: string; status: string; cpu: string; memory: string }[] }>("/infra/containers"),
     storage: () => request<{ redis: Record<string, unknown>; qdrant: Record<string, unknown> }>("/infra/storage"),
+    network: () => request<Record<string, unknown>>("/infra/network"),
+  },
+
+  // Traces (Jaeger/OTEL)
+  traces: {
+    services: () => request<{ data: string[] }>("/traces/services"),
+    recent: (service?: string, limit?: number) =>
+      request<Record<string, unknown>>(`/traces/recent?service=${service || "life-core"}&limit=${limit || 20}`),
   },
 };
