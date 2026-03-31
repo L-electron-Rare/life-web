@@ -52,6 +52,14 @@ export const api = {
     network: () => request<Record<string, unknown>>("/infra/network"),
   },
 
+  // Stats timeseries
+  statsTimeseries: (points?: number) =>
+    request<{ series: { time: string; p50: number; p99: number; calls: number; errors: number }[]; summary: Record<string, number> }>(`/stats/timeseries?points=${points || 20}`),
+
+  // Logs
+  logsRecent: (limit?: number) =>
+    request<{ logs: { timestamp: string; level: string; message: string; source: string }[]; total: number }>(`/logs/recent?limit=${limit || 50}`),
+
   // Traces (Jaeger/OTEL)
   traces: {
     services: () => request<{ data: string[] }>("/traces/services"),
