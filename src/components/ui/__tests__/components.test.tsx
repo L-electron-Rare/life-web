@@ -12,12 +12,12 @@ describe("GlassCard", () => {
 
   it("applies custom className", () => {
     const { container } = render(<GlassCard className="custom">Test</GlassCard>);
-    expect(container.firstChild?.className).toContain("custom");
+    expect((container.firstChild as HTMLElement)?.className).toContain("custom");
   });
 
   it("always includes glass-card base class", () => {
     const { container } = render(<GlassCard>Base</GlassCard>);
-    expect(container.firstChild?.className).toContain("glass-card");
+    expect((container.firstChild as HTMLElement)?.className).toContain("glass-card");
   });
 });
 
