@@ -22,7 +22,17 @@ export const api = {
     }),
   conversations: {
     list: () => request<{ conversations: { id: string; title: string; created_at: string; provider: string; message_count: number }[] }>("/conversations"),
-    get: (id: string) => request<{ id: string; messages: { role: string; content: string }[]; provider: string }>(`/conversations/${id}`),
+    get: (id: string) => request<{ id: string; title: string; messages: { role: string; content: string }[]; provider: string }>(`/conversations/${id}`),
+    create: (body: { title?: string; provider?: string }) => request<{ id: string; title: string; provider: string; messages: []; created_at: string }>("/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    addMessage: (id: string, msg: { role: string; content: string }) => request<{ status: string; message_count: number }>(`/conversations/${id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(msg),
+    }),
     delete: (id: string) => request<void>(`/conversations/${id}`, { method: "DELETE" }),
   },
 
