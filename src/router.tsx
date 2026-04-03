@@ -20,6 +20,11 @@ const InfraContainers = lazy(() => import("./pages/infra/InfraContainers").then(
 const InfraNetwork = lazy(() => import("./pages/infra/InfraNetwork").then(m => ({ default: m.InfraNetwork })));
 const InfraStorage = lazy(() => import("./pages/infra/InfraStorage").then(m => ({ default: m.InfraStorage })));
 const GovernancePage = lazy(() => import("./pages/GovernancePage").then(m => ({ default: m.GovernancePage })));
+const MonitoringOverview = lazy(() => import("./pages/monitoring/MonitoringOverview").then(m => ({ default: m.MonitoringOverview })));
+const MachinesPanel      = lazy(() => import("./pages/monitoring/MachinesPanel").then(m => ({ default: m.MachinesPanel })));
+const GPUPanel           = lazy(() => import("./pages/monitoring/GPUPanel").then(m => ({ default: m.GPUPanel })));
+const ContainersMonPanel = lazy(() => import("./pages/monitoring/ContainersPanel").then(m => ({ default: m.ContainersPanel })));
+const ActivepiecesPanel  = lazy(() => import("./pages/monitoring/ActivepiecesPanel").then(m => ({ default: m.ActivepiecesPanel })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -117,6 +122,28 @@ function GovernanceLayout() {
 }
 const governanceRoute = createRoute({getParentRoute:()=>rootRoute,path:"/governance",component:GovernanceLayout});
 
+// Monitoring
+function MonitoringLayout() {
+  return (
+    <>
+      <SubTabs tabs={[
+        { to: "/monitoring",             label: "Vue d'ensemble" },
+        { to: "/monitoring/machines",    label: "Machines" },
+        { to: "/monitoring/gpu",         label: "GPU" },
+        { to: "/monitoring/containers",  label: "Containers" },
+        { to: "/monitoring/automation",  label: "Automation" },
+      ]} />
+      <Suspense fallback={suspenseFallback}><Outlet /></Suspense>
+    </>
+  );
+}
+const monitoringLayout     = createRoute({ getParentRoute: () => rootRoute, path: "/monitoring", component: MonitoringLayout });
+const monitoringIndex      = createRoute({ getParentRoute: () => monitoringLayout, path: "/",           component: MonitoringOverview });
+const monitoringMachines   = createRoute({ getParentRoute: () => monitoringLayout, path: "/machines",   component: MachinesPanel });
+const monitoringGpu        = createRoute({ getParentRoute: () => monitoringLayout, path: "/gpu",        component: GPUPanel });
+const monitoringContainers = createRoute({ getParentRoute: () => monitoringLayout, path: "/containers", component: ContainersMonPanel });
+const monitoringAutomation = createRoute({ getParentRoute: () => monitoringLayout, path: "/automation", component: ActivepiecesPanel });
+
 const routeTree = rootRoute.addChildren([
   dashboardLayout.addChildren([dashboardIndex,dashboardMetrics,dashboardLogs]),
   chatLayout.addChildren([chatIndex,chatConversations]),
@@ -125,6 +152,7 @@ const routeTree = rootRoute.addChildren([
   tracesLayout.addChildren([tracesIndex,tracesMetrics]),
   infraLayout.addChildren([infraIndex,infraNetwork,infraStorage]),
   governanceRoute,
+  monitoringLayout.addChildren([monitoringIndex,monitoringMachines,monitoringGpu,monitoringContainers,monitoringAutomation]),
 ]);
 
 export const router = createRouter({ routeTree });

@@ -76,6 +76,27 @@ export const api = {
     network: () => request<Record<string, unknown>>("/infra/network"),
   },
 
+  // Monitoring
+  monitoring: {
+    machines: () => request<{
+      machines: { name: string; ip: string; cpu_percent: number; ram_used_gb: number;
+                  ram_total_gb: number; disk_used_gb: number; disk_total_gb: number;
+                  uptime_hours: number; error?: string }[]
+    }>("/infra/machines"),
+
+    gpu: () => request<{
+      model: string; vram_used_gb: number; vram_total_gb: number;
+      requests_active: number; tokens_per_sec: number; kv_cache_usage_percent: number;
+      error?: string;
+    }>("/infra/gpu"),
+
+    activepieces: () => request<{
+      flows: { id: string; name: string; status: string; trigger: string;
+               last_run_at: string; last_run_status: string }[];
+      error?: string;
+    }>("/infra/activepieces"),
+  },
+
   // Stats timeseries
   statsTimeseries: (points?: number) =>
     request<{ series: { time: string; p50: number; p99: number; calls: number; errors: number }[]; summary: Record<string, number> }>(`/stats/timeseries?points=${points || 20}`),
