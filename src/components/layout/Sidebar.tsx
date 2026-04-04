@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, MessageSquare, Zap, BookOpen, Activity, Server, ShieldCheck, Monitor, CircuitBoard } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Zap, BookOpen, Activity, Server, ShieldCheck, Monitor, CircuitBoard, LogOut } from "lucide-react";
 import { type ReactNode } from "react";
+import { useAuth } from "../AuthProvider";
 
 interface NavItem { to: string; icon: ReactNode; label: string; }
 
@@ -15,6 +16,21 @@ const navItems: NavItem[] = [
   { to: "/monitoring", icon: <Monitor size={20} />, label: "Monitoring" },
   { to: "/schematic", icon: <CircuitBoard size={20} />, label: "Schematic" },
 ];
+
+function UserFooter() {
+  const { user, logout } = useAuth();
+  const initials = (user?.profile?.preferred_username ?? "?").slice(0, 2).toUpperCase();
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-green/20 text-xs font-medium text-accent-green" title={user?.profile?.email ?? ""}>
+        {initials}
+      </div>
+      <button onClick={() => logout()} title="Déconnexion" className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-accent-red transition-colors">
+        <LogOut size={16} />
+      </button>
+    </div>
+  );
+}
 
 export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -32,7 +48,7 @@ export function Sidebar() {
         );
       })}
       <div className="flex-1" />
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-green/20 text-xs font-medium text-accent-green">FL</div>
+      <UserFooter />
     </aside>
   );
 }
