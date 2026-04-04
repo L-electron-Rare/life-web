@@ -26,6 +26,7 @@ const GPUPanel           = lazy(() => import("./pages/monitoring/GPUPanel").then
 const ContainersMonPanel = lazy(() => import("./pages/monitoring/ContainersPanel").then(m => ({ default: m.ContainersPanel })));
 const ActivepiecesPanel  = lazy(() => import("./pages/monitoring/ActivepiecesPanel").then(m => ({ default: m.ActivepiecesPanel })));
 const SchematicViewer    = lazy(() => import("./pages/schematic/SchematicViewer").then(m => ({ default: m.SchematicViewer })));
+const SearchPage         = lazy(() => import("./pages/search/SearchPage").then(m => ({ default: m.SearchPage })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -117,6 +118,12 @@ const infraIndex = createRoute({getParentRoute:()=>infraLayout,path:"/",componen
 const infraNetwork = createRoute({getParentRoute:()=>infraLayout,path:"/network",component:InfraNetwork});
 const infraStorage = createRoute({getParentRoute:()=>infraLayout,path:"/storage",component:InfraStorage});
 
+// Search
+function SearchLayout() {
+  return <Suspense fallback={suspenseFallback}><SearchPage /></Suspense>;
+}
+const searchRoute = createRoute({getParentRoute:()=>rootRoute,path:"/search",component:SearchLayout});
+
 // Governance
 function GovernanceLayout() {
   return <Suspense fallback={suspenseFallback}><GovernancePage /></Suspense>;
@@ -158,6 +165,7 @@ const routeTree = rootRoute.addChildren([
   ragLayout.addChildren([ragIndex,ragSearch,ragStats]),
   tracesLayout.addChildren([tracesIndex,tracesMetrics]),
   infraLayout.addChildren([infraIndex,infraNetwork,infraStorage]),
+  searchRoute,
   governanceRoute,
   schematicRoute,
   monitoringLayout.addChildren([monitoringIndex,monitoringMachines,monitoringGpu,monitoringContainers,monitoringAutomation]),

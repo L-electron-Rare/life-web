@@ -121,6 +121,35 @@ export const api = {
       request<Record<string, unknown>>(`/traces/recent?service=${service || "life-core"}&limit=${limit || 20}`),
   },
 
+  // Semantic search
+  search: (q: string, collections?: string[], topK?: number) => {
+    const params = new URLSearchParams({ q });
+    if (collections && collections.length > 0) params.set("collections", collections.join(","));
+    if (topK) params.set("top_k", String(topK));
+    return request<{
+      query: string;
+      collections: string[];
+      results: {
+        content: string;
+        document_id: string;
+        chunk_index: number;
+        metadata: {
+          file_path?: string;
+          filename?: string;
+          source?: string;
+          user?: string;
+          mime_type?: string;
+          collection?: string;
+          summary?: string;
+          themes?: string[];
+        };
+        score: number;
+        dense_score: number;
+        sparse_score: number;
+      }[];
+    }>(`/api/search?${params.toString()}`);
+  },
+
   audit: {
     status: () => request<AuditStatus>("/api/audit/status"),
     report: () => request<AuditReport>("/api/audit/report"),
