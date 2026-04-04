@@ -46,8 +46,6 @@ yarn-error.log*
 
 # Package managers
 yarn.lock
-pnpm-lock.yaml
-package-lock.json
 
 # Build & Cache
 dist/
