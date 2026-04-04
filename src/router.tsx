@@ -25,6 +25,7 @@ const MachinesPanel      = lazy(() => import("./pages/monitoring/MachinesPanel")
 const GPUPanel           = lazy(() => import("./pages/monitoring/GPUPanel").then(m => ({ default: m.GPUPanel })));
 const ContainersMonPanel = lazy(() => import("./pages/monitoring/ContainersPanel").then(m => ({ default: m.ContainersPanel })));
 const ActivepiecesPanel  = lazy(() => import("./pages/monitoring/ActivepiecesPanel").then(m => ({ default: m.ActivepiecesPanel })));
+const SchematicViewer    = lazy(() => import("./pages/schematic/SchematicViewer").then(m => ({ default: m.SchematicViewer })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -122,6 +123,12 @@ function GovernanceLayout() {
 }
 const governanceRoute = createRoute({getParentRoute:()=>rootRoute,path:"/governance",component:GovernanceLayout});
 
+// Schematic / PCB viewer
+function SchematicLayout() {
+  return <Suspense fallback={suspenseFallback}><SchematicViewer /></Suspense>;
+}
+const schematicRoute = createRoute({getParentRoute:()=>rootRoute,path:"/schematic",component:SchematicLayout});
+
 // Monitoring
 function MonitoringLayout() {
   return (
@@ -152,6 +159,7 @@ const routeTree = rootRoute.addChildren([
   tracesLayout.addChildren([tracesIndex,tracesMetrics]),
   infraLayout.addChildren([infraIndex,infraNetwork,infraStorage]),
   governanceRoute,
+  schematicRoute,
   monitoringLayout.addChildren([monitoringIndex,monitoringMachines,monitoringGpu,monitoringContainers,monitoringAutomation]),
 ]);
 
