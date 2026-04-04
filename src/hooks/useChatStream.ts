@@ -1,0 +1,76 @@
+import { useState, useCallback } from "react";
+
+export interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export function useChatStream(apiBase: string) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [streaming, setStreaming] = useState(false);
+
+  const send = useCallback(
+    async (text: string, model: string, useRag: boolean) => {
+      const userMsg: Message = { role: "user", content: text };
+      setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
+      setStreaming(true);
+
+      try {
+        const res = await fetch(`${apiBase}/chat/stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...messages, userMsg],
+            model,
+            use_rag: useRag,
+          }),
+        });
+
+        if (!res.body) {
+          setStreaming(false);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6);
+            if (payload === "[DONE]") {
+              setStreaming(false);
+              return;
+            }
+            try {
+              const { delta } = JSON.parse(payload) as { delta?: string };
+              if (delta) {
+                setMessages((prev) => {
+                  const copy = [...prev];
+                  copy[copy.length - 1] = {
+                    ...copy[copy.length - 1],
+                    content: copy[copy.length - 1].content + delta,
+                  };
+                  return copy;
+                });
+              }
+            } catch {
+              // skip malformed
+            }
+          }
+        }
+      } finally {
+        setStreaming(false);
+      }
+    },
+    [messages, apiBase],
+  );
+
+  return { messages, setMessages, streaming, send };
+}
