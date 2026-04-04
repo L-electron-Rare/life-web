@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+vi.mock("../auth", () => ({
+  getAccessToken: vi.fn().mockResolvedValue(null),
+}));
+
 // api.ts reads import.meta.env.VITE_API_URL at module load time;
 // with no env var set it falls back to the public API host.
 const { api } = await import("../api");
@@ -60,14 +64,15 @@ describe("api client", () => {
     expect(result.content).toBe("hello");
     expect(result.usage?.input_tokens).toBe(3);
     expect(result.trace_id).toBe("abc123");
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.saillant.cc/api/chat",
-      expect.objectContaining({
-        credentials: "include",
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    const chatCall = mockFetch.mock.calls[0];
+    expect(chatCall[0]).toBe("https://api.saillant.cc/api/chat");
+    expect(chatCall[1]).toMatchObject({ credentials: "include", method: "POST" });
+    const chatHeaders = chatCall[1]?.headers;
+    if (chatHeaders instanceof Headers) {
+      expect(chatHeaders.get("Content-Type")).toBe("application/json");
+    } else {
+      expect((chatHeaders as Record<string, string>)?.["Content-Type"]).toBe("application/json");
+    }
   });
 
   it("models returns parsed response", async () => {
@@ -140,6 +145,26 @@ describe("api client", () => {
         method: "DELETE",
       }),
     );
+  });
+
+  it("sends Bearer token in Authorization header", async () => {
+    const { getAccessToken } = await import("../auth");
+    vi.mocked(getAccessToken).mockResolvedValueOnce("test-jwt-token");
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ status: "ok", providers: [], cache_available: true }),
+    });
+
+    await api.health();
+    const callArgs = mockFetch.mock.calls[0];
+    const headers = callArgs[1]?.headers;
+    // Headers could be a Headers object
+    if (headers instanceof Headers) {
+      expect(headers.get("Authorization")).toBe("Bearer test-jwt-token");
+    } else {
+      expect((headers as Record<string, string>)?.Authorization).toBe("Bearer test-jwt-token");
+    }
   });
 
   it("audit routes use the gateway host", async () => {

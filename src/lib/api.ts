@@ -1,4 +1,5 @@
 import type { AuditReport, AuditStatus } from "../components/governance/types";
+import { getAccessToken } from "./auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.saillant.cc";
 
@@ -8,9 +9,15 @@ type ChatUsage = {
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getAccessToken();
+  const headers = new Headers(init?.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
   const res = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
     ...init,
+    headers,
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
