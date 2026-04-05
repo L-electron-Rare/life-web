@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { useChatStream, type Message } from "../../hooks/useChatStream";
+import { api } from "../../lib/api";
+import type { GetModelsCatalog200ModelsItem } from "../../../../life-reborn/src/generated/api.client.ts";
 
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3210";
+const API = (import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3210").replace(/\/$/, "");
+const DEFAULT_MODEL = API.includes("localhost") || API.includes("127.0.0.1")
+  ? "qwen3:4b"
+  : "openai/qwen-32b-awq";
 const LS_KEY = "chat_history";
 
 interface Session {
@@ -12,11 +16,27 @@ interface Session {
   messages: Message[];
 }
 
+function getStorage(): Storage | null {
+  try {
+    const storage = globalThis.localStorage;
+    if (
+      storage &&
+      typeof storage.getItem === "function" &&
+      typeof storage.setItem === "function"
+    ) {
+      return storage;
+    }
+  } catch {
+    // Ignore environments without a usable localStorage implementation.
+  }
+  return null;
+}
+
 export function ChatNew() {
-  const [model, setModel] = useState("openai/qwen-32b-awq");
+  const [model, setModel] = useState(DEFAULT_MODEL);
   const [useRag, setUseRag] = useState(false);
   const [input, setInput] = useState("");
-  const [catalog, setCatalog] = useState<{ id: string; name: string; domain?: string }[]>([]);
+  const [catalog, setCatalog] = useState<GetModelsCatalog200ModelsItem[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string>(() => crypto.randomUUID());
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -24,17 +44,24 @@ export function ChatNew() {
 
   // Load model catalog
   useEffect(() => {
-    fetch(`${API}/models/catalog`)
-      .then((r) => r.json())
-      .then((data: { models: { id: string; name: string; domain?: string }[] }) =>
-        setCatalog(data.models ?? []),
-      )
+    let cancelled = false;
+
+    api.modelCatalog()
+      .then((data) => {
+        if (!cancelled) {
+          setCatalog(data.models ?? []);
+        }
+      })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load history from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem(LS_KEY);
+    const saved = getStorage()?.getItem(LS_KEY);
     if (saved) {
       try {
         setSessions(JSON.parse(saved) as Session[]);
@@ -46,7 +73,7 @@ export function ChatNew() {
 
   // Persist sessions to localStorage
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(sessions));
+    getStorage()?.setItem(LS_KEY, JSON.stringify(sessions));
   }, [sessions]);
 
   // Update session in history when messages change
@@ -67,7 +94,9 @@ export function ChatNew() {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (typeof bottomRef.current?.scrollIntoView === "function") {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const submit = () => {
@@ -85,6 +114,8 @@ export function ChatNew() {
     setActiveId(s.id);
     setMessages(s.messages);
   };
+
+  const hasSelectedModel = catalog.some((entry) => entry.id === model);
 
   return (
     <div className="flex h-full">
@@ -121,13 +152,18 @@ export function ChatNew() {
             className="rounded-lg border border-border-glass bg-surface-card px-3 py-1.5 text-xs text-text-primary"
           >
             {catalog.length === 0 ? (
-              <option value="openai/qwen-32b-awq">Qwen 32B AWQ (GPU)</option>
+              <option value={DEFAULT_MODEL}>{DEFAULT_MODEL}</option>
             ) : (
-              catalog.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))
+              <>
+                {!hasSelectedModel && (
+                  <option value={model}>{model}</option>
+                )}
+                {catalog.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </>
             )}
           </select>
           <label className="flex items-center gap-1.5 text-xs cursor-pointer text-text-muted hover:text-text-primary">
@@ -148,15 +184,9 @@ export function ChatNew() {
               <p className="mb-1 text-[9px] uppercase text-text-muted">
                 {m.role === "user" ? "Vous" : model}
               </p>
-              {m.role === "assistant" ? (
-                <div className="prose prose-sm prose-invert max-w-none text-text-primary">
-                  <ReactMarkdown>
-                    {m.content || (streaming && i === messages.length - 1 ? "▌" : "")}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <p className="whitespace-pre-wrap text-sm">{m.content}</p>
-              )}
+              <p className="whitespace-pre-wrap text-sm">
+                {m.content || (streaming && i === messages.length - 1 ? "▌" : "")}
+              </p>
             </GlassCard>
           ))}
           {streaming && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (

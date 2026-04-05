@@ -2,13 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-// Mock react-markdown (may not be installed yet in test env)
-vi.mock("react-markdown", () => ({
-  default: ({ children }: { children: string }) => <span>{children}</span>,
-}));
-
 // Mock fetch for catalog endpoint
 beforeEach(() => {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
   global.fetch = vi.fn().mockResolvedValue({
     json: async () => ({
       models: [{ id: "openai/qwen-32b-awq", name: "Qwen 32B AWQ (GPU)", domain: "general" }],
@@ -29,20 +25,20 @@ describe("ChatNew", () => {
   it("renders model selector and RAG toggle", async () => {
     const { ChatNew } = await import("../ChatNew");
     render(<ChatNew />);
-    expect(screen.getByRole("combobox")).toBeDefined();
-    expect(screen.getByRole("checkbox")).toBeDefined();
+    expect(await screen.findByRole("combobox")).toBeDefined();
+    expect(await screen.findByRole("checkbox")).toBeDefined();
   });
 
   it("renders new chat button", async () => {
     const { ChatNew } = await import("../ChatNew");
     render(<ChatNew />);
-    expect(screen.getByText("+ Nouvelle conversation")).toBeDefined();
+    expect(await screen.findByText("+ Nouvelle conversation")).toBeDefined();
   });
 
   it("renders message input and send button", async () => {
     const { ChatNew } = await import("../ChatNew");
     render(<ChatNew />);
-    expect(screen.getByRole("textbox")).toBeDefined();
-    expect(screen.getByText("Envoyer")).toBeDefined();
+    expect(await screen.findByRole("textbox")).toBeDefined();
+    expect(await screen.findByText("Envoyer")).toBeDefined();
   });
 });

@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../../../lib/api";
-import type { AuditStatus, AuditReport } from "../types";
+import {
+  normalizeAuditReport,
+  normalizeAuditStatus,
+  type AuditStatus,
+  type AuditReport,
+} from "../types";
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -26,8 +31,8 @@ export function useAuditData(): AuditDataState {
         api.audit.status(),
         api.audit.report(),
       ]);
-      setStatus(statusData);
-      setReport(reportData);
+      setStatus(normalizeAuditStatus(statusData));
+      setReport(normalizeAuditReport(reportData));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {

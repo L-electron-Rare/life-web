@@ -2,24 +2,25 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { Terminal } from "../../components/ui/Terminal";
+import type { GetTracesRecent200DataItem } from "../../../../life-reborn/src/generated/api.client.ts";
 
 type LogLevel = "INFO" | "WARN" | "ERROR";
 
-function parseTraceLevel(trace: Record<string, unknown>): LogLevel {
+function parseTraceLevel(trace: GetTracesRecent200DataItem): LogLevel {
   const status = String((trace.status ?? trace.statusCode ?? "")).toLowerCase();
   if (status.includes("error") || status.startsWith("5") || status.startsWith("4")) return "ERROR";
   if (status.includes("warn")) return "WARN";
   return "INFO";
 }
 
-function traceToLine(trace: Record<string, unknown>) {
+function traceToLine(trace: GetTracesRecent200DataItem) {
   const ts = trace.startTime
     ? new Date(Number(trace.startTime) / 1000).toISOString().slice(11, 19)
     : "--:--:--";
   const op = String(trace.operationName ?? trace.operation ?? "unknown");
   const duration = trace.duration ? `${Math.round(Number(trace.duration) / 1000)}ms` : "";
-  const process = trace.process as Record<string, unknown> | undefined;
-  const service = String(process?.serviceName ?? trace.serviceName ?? "");
+  const firstProcess = trace.processes ? Object.values(trace.processes)[0] : undefined;
+  const service = String(firstProcess?.serviceName ?? trace.serviceName ?? "");
   return {
     timestamp: ts,
     level: parseTraceLevel(trace),
@@ -34,7 +35,7 @@ export function TracesRequests() {
     refetchInterval: 15_000,
   });
 
-  const rawData = (traces.data as { data?: Record<string, unknown>[] } | undefined)?.data ?? [];
+  const rawData = traces.data?.data ?? [];
   const lines = rawData.length > 0
     ? rawData.map((t) => traceToLine(t))
     : [];
