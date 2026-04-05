@@ -18,9 +18,13 @@ export const userManager = new UserManager({
 });
 
 export async function getAccessToken(): Promise<string | null> {
-  const user = await userManager.getUser();
-  if (!user || user.expired) return null;
-  return user.access_token;
+  try {
+    const user = await userManager.getUser();
+    if (!user || user.expired) return null;
+    return user.access_token;
+  } catch {
+    return null;
+  }
 }
 
 export async function login(): Promise<void> {

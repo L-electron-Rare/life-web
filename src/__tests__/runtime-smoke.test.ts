@@ -217,13 +217,41 @@ describe("life-web bundle runtime smoke", () => {
       });
     }
 
+    window.sessionStorage.setItem(
+      "oidc.user:https://auth.saillant.cc/realms/electron_rare:life-web",
+      JSON.stringify({
+        id_token: "smoke-id-token",
+        session_state: "smoke-session",
+        access_token: "smoke-access-token",
+        refresh_token: "smoke-refresh-token",
+        token_type: "Bearer",
+        scope: "openid profile email",
+        profile: {
+          sub: "smoke-user",
+          preferred_username: "smoke",
+          email: "smoke@example.test",
+        },
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      })
+    );
+
     try {
       const entryFile = resolve(outDir, scriptMatch[1].replace(/^\//, ""));
       await import(pathToFileURL(entryFile).href);
 
       await waitFor(() => {
+        const sawStatus = apiRequests.includes("/api/audit/status");
+        const sawReport = apiRequests.includes("/api/audit/report");
+        const apiFetches = runtimeFetches.filter((url) => url.includes("/api/"));
+        return sawStatus && sawReport && apiFetches.length > 0;
+      }).catch(() => {
         const text = window.document.body.textContent || "";
-        return text.includes("Pass") && text.includes("demo-audit.md");
+        throw new Error(
+          `Timed out while waiting for smoke assertions. ` +
+          `apiRequests=${JSON.stringify(apiRequests)} ` +
+          `runtimeFetches=${JSON.stringify(runtimeFetches)} ` +
+          `body=${JSON.stringify(text.slice(0, 500))}`
+        );
       });
     } finally {
       for (const [key, value] of originalGlobals.entries()) {

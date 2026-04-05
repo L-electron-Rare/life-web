@@ -2,6 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { StatusDot } from "../../components/ui/StatusDot";
+import type { GetInfraNetwork200Jaeger, GetInfraNetwork200OllamaGpu, GetInfraNetwork200OllamaLocal, GetInfraNetwork200VllmGpu } from "../../generated/gateway-types";
+
+function toStatus(value?: string): "healthy" | "unhealthy" | "unknown" {
+  if (value === "up" || value === "connected" || value === "healthy") return "healthy";
+  if (value === "down" || value === "error" || value === "unhealthy") return "unhealthy";
+  return "unknown";
+}
+
+function modelSummary(models?: number | string[]): string | null {
+  if (typeof models === "number") return `${models} modèles`;
+  if (Array.isArray(models)) return models.length > 0 ? `${models.length} modèles` : "0 modèle";
+  return null;
+}
 
 export function InfraNetwork() {
   const network = useQuery({
@@ -10,12 +23,10 @@ export function InfraNetwork() {
     refetchInterval: 30_000,
   });
 
-  const ollamaLocalStatus = network.data
-    ? ((network.data as Record<string, unknown>).ollama_local_status as string | undefined) ?? "unknown"
-    : "unknown";
-  const ollamaRemoteStatus = network.data
-    ? ((network.data as Record<string, unknown>).ollama_remote_status as string | undefined) ?? "unknown"
-    : "unknown";
+  const ollamaLocal: GetInfraNetwork200OllamaLocal | undefined = network.data?.ollama_local;
+  const ollamaGpu: GetInfraNetwork200OllamaGpu | undefined = network.data?.ollama_gpu;
+  const vllmGpu: GetInfraNetwork200VllmGpu | undefined = network.data?.vllm_gpu;
+  const jaeger: GetInfraNetwork200Jaeger | undefined = network.data?.jaeger;
 
   return (
     <div className="grid grid-cols-2 gap-4 p-4">
@@ -27,8 +38,12 @@ export function InfraNetwork() {
           <div className="flex items-center gap-2"><StatusDot status="healthy" /> Redis, Qdrant, Forgejo</div>
           <div className="flex items-center gap-2"><StatusDot status="healthy" /> Langfuse, Traefik</div>
           <div className="flex items-center gap-2">
-            <StatusDot status={ollamaLocalStatus === "healthy" ? "healthy" : "unknown"} />
-            Ollama (local)
+            <StatusDot status={toStatus(ollamaLocal?.status)} label={ollamaLocal?.status ?? "unknown"} />
+            Ollama (local){modelSummary(ollamaLocal?.models) ? `, ${modelSummary(ollamaLocal?.models)}` : ""}
+          </div>
+          <div className="flex items-center gap-2">
+            <StatusDot status={toStatus(jaeger?.status)} label={jaeger?.status ?? "unknown"} />
+            Jaeger
           </div>
         </div>
       </GlassCard>
@@ -37,8 +52,12 @@ export function InfraNetwork() {
         <p className="text-xs text-text-muted mt-1">28 cores / 62 GiB / RTX 4090</p>
         <div className="mt-3 space-y-1 text-xs">
           <div className="flex items-center gap-2">
-            <StatusDot status={ollamaRemoteStatus === "healthy" ? "healthy" : "unknown"} />
-            Ollama (33 modèles)
+            <StatusDot status={toStatus(ollamaGpu?.status)} label={ollamaGpu?.status ?? "unknown"} />
+            Ollama{modelSummary(ollamaGpu?.models) ? ` (${modelSummary(ollamaGpu?.models)})` : " (GPU)"}
+          </div>
+          <div className="flex items-center gap-2">
+            <StatusDot status={toStatus(vllmGpu?.status)} label={vllmGpu?.status ?? "unknown"} />
+            vLLM{modelSummary(vllmGpu?.models) ? ` (${modelSummary(vllmGpu?.models)})` : ""}
           </div>
           <div className="flex items-center gap-2"><StatusDot status="healthy" /> Tailscale VPN</div>
         </div>

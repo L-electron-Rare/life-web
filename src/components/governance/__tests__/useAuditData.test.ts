@@ -31,6 +31,32 @@ describe("useAuditData", () => {
     expect(result.current.error).toBeNull();
   });
 
+  it("normalizes no_report responses into an empty governance state", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => {
+      const body = url.includes("/status")
+        ? { status: "no_report", message: "Run validator first." }
+        : { status: "no_report", results: [] };
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+    }));
+
+    const { result } = renderHook(() => useAuditData());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.status).toEqual({
+      last_run: "unknown",
+      total_audits: 0,
+      pass: 0,
+      warn: 0,
+      fail: 0,
+    });
+    expect(result.current.report).toEqual({
+      timestamp: "unknown",
+      total_files: 0,
+      summary: { pass: 0, warn: 0, fail: 0 },
+      results: [],
+    });
+  });
+
   it("sets error on fetch failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }));
     const { result } = renderHook(() => useAuditData());

@@ -1,11 +1,74 @@
-import type { AuditReport, AuditStatus } from "../components/governance/types";
+import type {
+  AuditReportResponse as GatewayAuditReport,
+  AuditStatusResponse as GatewayAuditStatus,
+} from "../components/governance/types";
 import { getAccessToken } from "./auth";
+import type {
+  GetHealth200 as GatewayHealth,
+  GetModels200 as GatewayModels,
+  GetModelsCatalog200 as GatewayModelCatalog,
+  GetApiSearch200 as GatewaySearch,
+  GetApiProviders200 as GatewayProviders,
+  GetApiVersion200 as GatewayVersion,
+  GetStats200 as GatewayStats,
+  GetStatsTimeseries200 as GatewayStatsTimeseries,
+  GetLogsRecent200 as GatewayLogsRecent,
+  GetRagStats200 as GatewayRagStats,
+  GetRagSearch200 as GatewayRagSearch,
+  GetRagDocuments200 as GatewayRagDocuments,
+  PostRagDocuments200 as GatewayRagDocumentUpload,
+  DeleteRagDocumentsId200 as GatewayRagDocumentDelete,
+  GetConversations200 as GatewayConversationList,
+  GetConversationsConvId200 as GatewayConversation,
+  PostConversations200 as GatewayConversationCreate,
+  PostConversationsConvIdMessages200 as GatewayConversationAddMessage,
+  DeleteConversationsConvId200 as GatewayConversationDelete,
+  GetTracesRecent200 as GatewayTracesRecent,
+  GetTracesServices200 as GatewayTracesServices,
+  GetInfraContainers200 as GatewayInfraContainers,
+  GetInfraStorage200 as GatewayInfraStorage,
+  GetInfraNetwork200 as GatewayInfraNetwork,
+  GetInfraMachines200 as GatewayInfraMachines,
+  GetInfraGpu200 as GatewayInfraGpu,
+  GetInfraActivepieces200 as GatewayInfraActivepieces,
+} from "../generated/gateway-types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.saillant.cc";
+function normalizeBaseUrl(value: string | undefined, fallback: string): string {
+  const resolved = value?.trim() || fallback;
+  if (!resolved || resolved === "/") {
+    return "";
+  }
+  return resolved.endsWith("/") ? resolved.slice(0, -1) : resolved;
+}
+
+const API_BASE_URL = normalizeBaseUrl(
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL,
+  import.meta.env.DEV && import.meta.env.MODE !== "test" ? "http://localhost:3210" : "https://api.saillant.cc",
+);
 
 type ChatUsage = {
   input_tokens?: number;
   output_tokens?: number;
+};
+
+export type SemanticSearchMetadata = {
+  file_path?: string;
+  filename?: string;
+  source?: string;
+  user?: string;
+  mime_type?: string;
+  collection?: string;
+  summary?: string;
+  themes?: string[];
+  [key: string]: unknown;
+};
+
+export type SemanticSearchResult = Omit<GatewaySearch["results"][number], "metadata"> & {
+  metadata: SemanticSearchMetadata;
+};
+
+export type SemanticSearchResponse = Omit<GatewaySearch, "results"> & {
+  results: SemanticSearchResult[];
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -27,14 +90,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  health: () => request<{ status: string; providers: string[]; cache_available: boolean }>("/health"),
-  stats: () => request<Record<string, unknown>>("/stats"),
-  models: () => request<{ models: string[] }>("/models"),
-  modelCatalog: () => request<{
-    models: { id: string; name: string; provider: string; domain: string; description: string; size: string; location: string }[];
-    domains: Record<string, string>;
-  }>("/models/catalog"),
-  providers: () => request<{ providers: string[] }>("/api/providers"),
+  health: () => request<GatewayHealth>("/health"),
+  stats: () => request<GatewayStats>("/stats"),
+  models: () => request<GatewayModels>("/models"),
+  modelCatalog: () => request<GatewayModelCatalog>("/models/catalog"),
+  version: () => request<GatewayVersion>("/api/version"),
+  providers: () => request<GatewayProviders>("/api/providers"),
   chat: (body: { messages: { role: string; content: string }[]; model?: string; provider?: string; conversation_id?: string }) =>
     request<{ content: string; model: string; provider: string; usage?: ChatUsage; conversation_id?: string; trace_id?: string }>("/api/chat", {
       method: "POST",
@@ -42,117 +103,89 @@ export const api = {
       body: JSON.stringify(body),
     }),
   conversations: {
-    list: () => request<{ conversations: { id: string; title: string; created_at: string; provider: string; message_count: number }[] }>("/conversations"),
-    get: (id: string) => request<{ id: string; title: string; messages: { role: string; content: string }[]; provider: string }>(`/conversations/${id}`),
-    create: (body: { title?: string; provider?: string }) => request<{ id: string; title: string; provider: string; messages: []; created_at: string }>("/conversations", {
+    list: () => request<GatewayConversationList>("/conversations"),
+    get: (id: string) => request<GatewayConversation>(`/conversations/${id}`),
+    create: (body: { title?: string; provider?: string }) => request<GatewayConversationCreate>("/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
-    addMessage: (id: string, msg: { role: string; content: string }) => request<{ status: string; message_count: number }>(`/conversations/${id}/messages`, {
+    addMessage: (id: string, msg: { role: string; content: string }) => request<GatewayConversationAddMessage>(`/conversations/${id}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(msg),
     }),
-    delete: (id: string) => request<void>(`/conversations/${id}`, { method: "DELETE" }),
+    delete: (id: string) => request<GatewayConversationDelete>(`/conversations/${id}`, { method: "DELETE" }),
   },
 
   // Providers
-  providersBenchmark: (prompt: string) =>
-    request<{ results: { provider: string; model: string; duration_ms: number; tokens: number; content: string }[] }>("/benchmark", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    }),
+  providersBenchmark: async (_prompt: string) => {
+    throw new Error("Benchmark endpoint not implemented yet");
+  },
 
   // RAG
   rag: {
-    stats: () => request<{ documents: number; chunks: number; vectors: number }>("/rag/stats"),
-    search: (q: string, topK?: number) => request<{ query: string; results: { content: string; document_id: string; chunk_index: number }[] }>(`/rag/search?q=${encodeURIComponent(q)}&top_k=${topK || 5}`),
+    stats: () => request<GatewayRagStats>("/rag/stats"),
+    search: (q: string, topK?: number, mode?: string, collections?: string[]) => {
+      const params = new URLSearchParams({ q, top_k: String(topK || 5) });
+      if (mode) params.set("mode", mode);
+      if (collections && collections.length > 0) params.set("collections", collections.join(","));
+      return request<GatewayRagSearch>(`/rag/search?${params.toString()}`);
+    },
     upload: (file: File) => {
       const form = new FormData();
       form.append("file", file);
-      return request<{ id: string; name: string; chunks: number }>("/rag/documents", { method: "POST", body: form });
+      return request<GatewayRagDocumentUpload>("/rag/documents", { method: "POST", body: form });
     },
-    list: () => request<{ documents: { id: string; name: string; chunks: number; metadata: Record<string, unknown> }[] }>("/rag/documents"),
-    delete: (id: string) => request<{ deleted: boolean; id: string }>(`/rag/documents/${id}`, { method: "DELETE" }),
+    list: () => request<GatewayRagDocuments>("/rag/documents"),
+    delete: (id: string) => request<GatewayRagDocumentDelete>(`/rag/documents/${id}`, { method: "DELETE" }),
   },
 
-  // Infra
-  infra: {
-    containers: () => request<{ containers: { name: string; image: string; status: string; cpu: string; memory: string }[] }>("/infra/containers"),
-    storage: () => request<{ redis: Record<string, unknown>; qdrant: Record<string, unknown> }>("/infra/storage"),
-    network: () => request<Record<string, unknown>>("/infra/network"),
-  },
-
-  // Monitoring
-  monitoring: {
-    machines: () => request<{
-      machines: { name: string; ip: string; cpu_percent: number; ram_used_gb: number;
-                  ram_total_gb: number; disk_used_gb: number; disk_total_gb: number;
-                  uptime_hours: number; error?: string }[]
-    }>("/infra/machines"),
-
-    gpu: () => request<{
-      model: string; vram_used_gb: number; vram_total_gb: number;
-      requests_active: number; tokens_per_sec: number; kv_cache_usage_percent: number;
-      error?: string;
-    }>("/infra/gpu"),
-
-    activepieces: () => request<{
-      flows: { id: string; name: string; status: string; trigger: string;
-               last_run_at: string; last_run_status: string }[];
-      error?: string;
-    }>("/infra/activepieces"),
-  },
-
-  // Stats timeseries
-  statsTimeseries: (points?: number) =>
-    request<{ series: { time: string; p50: number; p99: number; calls: number; errors: number }[]; summary: Record<string, number> }>(`/stats/timeseries?points=${points || 20}`),
-
-  // Logs
-  logsRecent: (limit?: number) =>
-    request<{ logs: { timestamp: string; level: string; message: string; source: string }[]; total: number }>(`/logs/recent?limit=${limit || 50}`),
-
-  // Traces (Jaeger/OTEL)
-  traces: {
-    services: () => request<{ data: string[] }>("/traces/services"),
-    recent: (service?: string, limit?: number) =>
-      request<Record<string, unknown>>(`/traces/recent?service=${service || "life-core"}&limit=${limit || 20}`),
-  },
-
-  // Semantic search
   search: (q: string, collections?: string[], topK?: number) => {
     const params = new URLSearchParams({ q });
     if (collections && collections.length > 0) params.set("collections", collections.join(","));
     if (topK) params.set("top_k", String(topK));
-    return request<{
-      query: string;
-      collections: string[];
-      results: {
-        content: string;
-        document_id: string;
-        chunk_index: number;
-        metadata: {
-          file_path?: string;
-          filename?: string;
-          source?: string;
-          user?: string;
-          mime_type?: string;
-          collection?: string;
-          summary?: string;
-          themes?: string[];
-        };
-        score: number;
-        dense_score: number;
-        sparse_score: number;
-      }[];
-    }>(`/api/search?${params.toString()}`);
+    return request<GatewaySearch>(`/api/search?${params.toString()}`).then((response) => ({
+      ...response,
+      results: response.results.map((result) => ({
+        ...result,
+        metadata: (result.metadata ?? {}) as SemanticSearchMetadata,
+      })),
+    }) satisfies SemanticSearchResponse);
+  },
+
+  // Infra
+  infra: {
+    containers: () => request<GatewayInfraContainers>("/infra/containers"),
+    storage: () => request<GatewayInfraStorage>("/infra/storage"),
+    network: () => request<GatewayInfraNetwork>("/infra/network"),
+  },
+
+  // Monitoring
+  monitoring: {
+    machines: () => request<GatewayInfraMachines>("/infra/machines"),
+    gpu: () => request<GatewayInfraGpu>("/infra/gpu"),
+    activepieces: () => request<GatewayInfraActivepieces>("/infra/activepieces"),
+  },
+
+  // Stats timeseries
+  statsTimeseries: (points?: number) =>
+    request<GatewayStatsTimeseries>(`/stats/timeseries?points=${points || 20}`),
+
+  // Logs
+  logsRecent: (limit?: number) =>
+    request<GatewayLogsRecent>(`/logs/recent?limit=${limit || 50}`),
+
+  // Traces (Jaeger/OTEL)
+  traces: {
+    services: () => request<GatewayTracesServices>("/traces/services"),
+    recent: (service?: string, limit?: number) =>
+      request<GatewayTracesRecent>(`/traces/recent?service=${service || "life-core"}&limit=${limit || 20}`),
   },
 
   audit: {
-    status: () => request<AuditStatus>("/api/audit/status"),
-    report: () => request<AuditReport>("/api/audit/report"),
+    status: () => request<GatewayAuditStatus>("/api/audit/status"),
+    report: () => request<GatewayAuditReport>("/api/audit/report"),
   },
 
   // CAD gateway (cad.saillant.cc)

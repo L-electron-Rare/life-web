@@ -1,33 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { Spinner } from "../../components/ui/Spinner";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type SearchResult = {
-  content: string;
-  document_id: string;
-  chunk_index: number;
-  metadata: {
-    file_path?: string;
-    filename?: string;
-    source?: string;
-    user?: string;
-    mime_type?: string;
-    collection?: string;
-    summary?: string;
-    themes?: string[];
-  };
-  score: number;
-  dense_score: number;
-  sparse_score: number;
-};
-
+type SearchResult = Awaited<ReturnType<typeof api.search>>["results"][number];
 type CollectionFilter = "all" | "nextcloud_docs" | "life_chunks";
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getFileEmoji(filename: string, mimeType?: string): string {
   const name = filename.toLowerCase();
@@ -63,43 +48,39 @@ function getCollectionLabel(collection?: string): string {
 function buildNextcloudLink(filePath?: string): string | null {
   if (!filePath) return null;
   const dir = filePath.includes("/") ? filePath.substring(0, filePath.lastIndexOf("/")) : "/";
-  return `https://cloud.saillant.cc/apps/files/?dir=${encodeURIComponent("/" + dir)}`;
+  const normalizedDir = dir.startsWith("/") ? dir : `/${dir}`;
+  return `https://cloud.saillant.cc/apps/files/?dir=${encodeURIComponent(normalizedDir)}`;
 }
 
-function highlightTerms(text: string, query: string): React.ReactNode {
+function highlightTerms(text: string, query: string): ReactNode {
   if (!query.trim()) return text;
   const terms = query.trim().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return text;
-  const pattern = new RegExp(`(${terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  const pattern = new RegExp(
+    `(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+    "gi",
+  );
   const parts = text.split(pattern);
-  return parts.map((part, i) =>
-    pattern.test(part)
-      ? <mark key={i} className="bg-accent-green/25 text-accent-green rounded px-0.5">{part}</mark>
-      : part
+  return parts.map((part, index) =>
+    terms.some((term) => part.toLowerCase() === term.toLowerCase())
+      ? <mark key={index} className="rounded bg-accent-green/25 px-0.5 text-accent-green">{part}</mark>
+      : part,
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-interface SearchResultCardProps {
-  result: SearchResult;
-  query: string;
-}
-
-function SearchResultCard({ result, query }: SearchResultCardProps) {
-  const filename = result.metadata.filename ?? result.document_id;
+function SearchResultCard({ result, query }: { result: SearchResult; query: string }) {
+  const filename = result.metadata?.filename ?? result.document_id;
   const snippet = result.content.slice(0, 300);
-  const ncLink = result.metadata.source === "nextcloud"
+  const nextcloudLink = result.metadata?.source === "nextcloud"
     ? buildNextcloudLink(result.metadata.file_path)
     : null;
 
   return (
     <GlassCard className="flex flex-col gap-2">
-      {/* Header row */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <span className="shrink-0 text-base leading-none">
-            {getFileEmoji(filename, result.metadata.mime_type)}
+            {getFileEmoji(filename, result.metadata?.mime_type)}
           </span>
           <span className="truncate text-sm font-semibold text-text-primary">
             {filename}
@@ -110,28 +91,26 @@ function SearchResultCard({ result, query }: SearchResultCardProps) {
             {(result.score * 100).toFixed(0)}%
           </span>
           <span className="rounded border border-border-glass px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-muted">
-            {getCollectionLabel(result.metadata.collection)}
+            {getCollectionLabel(result.metadata?.collection)}
           </span>
         </div>
       </div>
 
-      {/* Content snippet */}
-      <p className="text-sm leading-relaxed text-text-primary line-clamp-4">
+      <p className="line-clamp-4 text-sm leading-relaxed text-text-primary">
         {highlightTerms(snippet, query)}
         {result.content.length > 300 && <span className="text-text-muted">…</span>}
       </p>
 
-      {/* Metadata footer */}
       <div className="flex flex-wrap items-center gap-3 text-[10px] text-text-muted">
-        {result.metadata.user && <span>user: {result.metadata.user}</span>}
-        {result.metadata.mime_type && <span>{result.metadata.mime_type}</span>}
+        {result.metadata?.user && <span>user: {result.metadata.user}</span>}
+        {result.metadata?.mime_type && <span>{result.metadata.mime_type}</span>}
         <span>chunk #{result.chunk_index}</span>
-        {ncLink && (
+        {nextcloudLink && (
           <a
-            href={ncLink}
+            href={nextcloudLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto text-accent-blue hover:text-accent-blue/80 underline underline-offset-2"
+            className="ml-auto text-accent-blue underline underline-offset-2 hover:text-accent-blue/80"
           >
             Ouvrir dans Nextcloud →
           </a>
@@ -141,49 +120,44 @@ function SearchResultCard({ result, query }: SearchResultCardProps) {
   );
 }
 
-interface SearchFiltersProps {
+function SearchFilters({
+  collection,
+  onCollectionChange,
+  topK,
+  onTopKChange,
+}: {
   collection: CollectionFilter;
-  onCollectionChange: (v: CollectionFilter) => void;
+  onCollectionChange: (value: CollectionFilter) => void;
   topK: number;
-  onTopKChange: (v: number) => void;
-}
-
-function SearchFilters({ collection, onCollectionChange, topK, onTopKChange }: SearchFiltersProps) {
-  const collectionOptions: { value: CollectionFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "nextcloud_docs", label: "Nextcloud Docs" },
-    { value: "life_chunks", label: "Projects" },
-  ];
-
+  onTopKChange: (value: number) => void;
+}) {
   const selectClass =
-    "rounded-lg border border-border-glass bg-surface-card px-3 py-1.5 text-sm text-text-primary focus:border-accent-green focus:outline-none cursor-pointer";
+    "cursor-pointer rounded-lg border border-border-glass bg-surface-card px-3 py-1.5 text-sm text-text-primary focus:border-accent-green focus:outline-none";
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs uppercase tracking-widest text-text-muted shrink-0">Filtres</span>
+      <span className="shrink-0 text-xs uppercase tracking-widest text-text-muted">Filtres</span>
       <select
         value={collection}
-        onChange={(e) => onCollectionChange(e.target.value as CollectionFilter)}
+        onChange={(event) => onCollectionChange(event.target.value as CollectionFilter)}
         className={selectClass}
       >
-        {collectionOptions.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
+        <option value="all">All</option>
+        <option value="nextcloud_docs">Nextcloud Docs</option>
+        <option value="life_chunks">Projects</option>
       </select>
       <select
         value={topK}
-        onChange={(e) => onTopKChange(Number(e.target.value))}
+        onChange={(event) => onTopKChange(Number(event.target.value))}
         className={selectClass}
       >
-        {[5, 10, 20].map((n) => (
-          <option key={n} value={n}>{n} résultats</option>
+        {[5, 10, 20].map((count) => (
+          <option key={count} value={count}>{count} résultats</option>
         ))}
       </select>
     </div>
   );
 }
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export function SearchPage() {
   const [inputValue, setInputValue] = useState("");
@@ -199,16 +173,11 @@ export function SearchPage() {
     },
   });
 
-  const runSearch = useCallback(
-    (q: string, col: CollectionFilter, k: number) => {
-      if (!q.trim()) return;
-      search.mutate({ q: q.trim(), col, k });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+  const runSearch = useCallback((q: string, col: CollectionFilter, k: number) => {
+    if (!q.trim()) return;
+    search.mutate({ q: q.trim(), col, k });
+  }, [search]);
 
-  // Debounced search on input change
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!inputValue.trim()) return;
@@ -219,18 +188,15 @@ export function SearchPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue]);
+  }, [inputValue, runSearch]);
 
-  // Re-search when filters change (only if there's a query)
   useEffect(() => {
     if (!query.trim()) return;
     runSearch(query, collection, topK);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, topK]);
+  }, [collection, query, runSearch, topK]);
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && inputValue.trim()) {
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && inputValue.trim()) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       setQuery(inputValue);
       runSearch(inputValue, collection, topK);
@@ -249,12 +215,11 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Search bar */}
       <div className="flex gap-2">
         <input
           type="search"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(event) => setInputValue(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Recherche sémantique…"
           autoFocus
@@ -269,7 +234,6 @@ export function SearchPage() {
         </button>
       </div>
 
-      {/* Filters */}
       <SearchFilters
         collection={collection}
         onCollectionChange={setCollection}
@@ -277,14 +241,12 @@ export function SearchPage() {
         onTopKChange={setTopK}
       />
 
-      {/* Loading */}
       {search.isPending && (
         <div className="flex justify-center py-8">
           <Spinner text="Recherche en cours…" />
         </div>
       )}
 
-      {/* Error */}
       {search.isError && (
         <GlassCard>
           <p className="text-sm text-accent-red">{String(search.error)}</p>
@@ -297,7 +259,6 @@ export function SearchPage() {
         </GlassCard>
       )}
 
-      {/* No results */}
       {noResults && (
         <div className="flex flex-col items-center gap-2 py-12">
           <p className="text-sm text-text-muted">
@@ -306,21 +267,23 @@ export function SearchPage() {
         </div>
       )}
 
-      {/* Results */}
       {hasResults && (
         <>
           <p className="text-xs text-text-muted">
             {search.data.results.length} résultat{search.data.results.length > 1 ? "s" : ""} pour «{search.data.query}»
           </p>
           <div className="flex flex-col gap-3">
-            {search.data.results.map((result, i) => (
-              <SearchResultCard key={`${result.document_id}-${result.chunk_index}-${i}`} result={result} query={query} />
+            {search.data.results.map((result, index) => (
+              <SearchResultCard
+                key={`${result.document_id}-${result.chunk_index}-${index}`}
+                result={result}
+                query={query}
+              />
             ))}
           </div>
         </>
       )}
 
-      {/* Empty state */}
       {!search.isPending && !search.isError && !search.isSuccess && (
         <div className="flex flex-col items-center gap-3 py-16">
           <p className="text-sm text-text-muted">

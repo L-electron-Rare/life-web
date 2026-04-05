@@ -3,6 +3,20 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { GlassCard } from "../../components/ui/GlassCard";
 import { MetricCard } from "../../components/ui/MetricCard";
 import { api } from "../../lib/api";
+import type {
+  GetStatsTimeseries200SeriesItem,
+  GetStatsTimeseries200Summary,
+} from "../../generated/gateway-types";
+
+const EMPTY_SUMMARY: GetStatsTimeseries200Summary = {
+  total_calls: 0,
+  total_errors: 0,
+  p50_ms: 0,
+  p99_ms: 0,
+  error_rate: 0,
+};
+
+const EMPTY_SERIES: GetStatsTimeseries200SeriesItem[] = [];
 
 export function DashboardMetrics() {
   const stats = useQuery({
@@ -11,8 +25,8 @@ export function DashboardMetrics() {
     refetchInterval: 15_000,
   });
 
-  const series = stats.data?.series ?? [];
-  const summary = stats.data?.summary ?? {};
+  const series = stats.data?.series ?? EMPTY_SERIES;
+  const summary = stats.data?.summary ?? EMPTY_SUMMARY;
 
   return (
     <div className="flex flex-col gap-4 p-4">
