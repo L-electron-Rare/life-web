@@ -31,7 +31,7 @@ import type {
   GetInfraMachines200 as GatewayInfraMachines,
   GetInfraGpu200 as GatewayInfraGpu,
   GetInfraActivepieces200 as GatewayInfraActivepieces,
-} from "../../../life-reborn/src/generated/api.client.ts";
+} from "../generated/gateway-types";
 
 function normalizeBaseUrl(value: string | undefined, fallback: string): string {
   const resolved = value?.trim() || fallback;

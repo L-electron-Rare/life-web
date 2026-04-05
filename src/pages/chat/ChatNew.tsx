@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { useChatStream, type Message } from "../../hooks/useChatStream";
 import { api } from "../../lib/api";
-import type { GetModelsCatalog200ModelsItem } from "../../../../life-reborn/src/generated/api.client.ts";
+import type { GetModelsCatalog200ModelsItem } from "../../generated/gateway-types";
 
 const API = (import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3210").replace(/\/$/, "");
 const DEFAULT_MODEL = API.includes("localhost") || API.includes("127.0.0.1")

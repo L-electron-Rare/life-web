@@ -1,7 +1,7 @@
 import { MetricCard } from "../../components/ui/MetricCard";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { GetInfraStorage200Qdrant, GetInfraStorage200Redis } from "../../../../life-reborn/src/generated/api.client.ts";
+import type { GetInfraStorage200Qdrant, GetInfraStorage200Redis } from "../../generated/gateway-types";
 
 export function InfraStorage() {
   const ragStats = useQuery({ queryKey: ["rag-stats"], queryFn: api.rag.stats, refetchInterval: 30_000 });

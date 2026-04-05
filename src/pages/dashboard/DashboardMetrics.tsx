@@ -6,7 +6,7 @@ import { api } from "../../lib/api";
 import type {
   GetStatsTimeseries200SeriesItem,
   GetStatsTimeseries200Summary,
-} from "../../../../life-reborn/src/generated/api.client.ts";
+} from "../../generated/gateway-types";
 
 const EMPTY_SUMMARY: GetStatsTimeseries200Summary = {
   total_calls: 0,

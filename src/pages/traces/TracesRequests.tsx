@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { Terminal } from "../../components/ui/Terminal";
-import type { GetTracesRecent200DataItem } from "../../../../life-reborn/src/generated/api.client.ts";
+import type { GetTracesRecent200DataItem } from "../../generated/gateway-types";
 
 type LogLevel = "INFO" | "WARN" | "ERROR";
 

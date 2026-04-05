@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { StatusDot } from "../../components/ui/StatusDot";
-import type { GetInfraContainers200ContainersItem } from "../../../../life-reborn/src/generated/api.client.ts";
+import type { GetInfraContainers200ContainersItem } from "../../generated/gateway-types";
 
 export function InfraContainers() {
   const containers = useQuery({

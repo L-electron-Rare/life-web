@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { StatusDot } from "../../components/ui/StatusDot";
-import type { GetInfraNetwork200Jaeger, GetInfraNetwork200OllamaGpu, GetInfraNetwork200OllamaLocal, GetInfraNetwork200VllmGpu } from "../../../../life-reborn/src/generated/api.client.ts";
+import type { GetInfraNetwork200Jaeger, GetInfraNetwork200OllamaGpu, GetInfraNetwork200OllamaLocal, GetInfraNetwork200VllmGpu } from "../../generated/gateway-types";
 
 function toStatus(value?: string): "healthy" | "unhealthy" | "unknown" {
   if (value === "up" || value === "connected" || value === "healthy") return "healthy";

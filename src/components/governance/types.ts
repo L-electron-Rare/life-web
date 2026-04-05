@@ -1,7 +1,7 @@
 import type {
   GetApiAuditReport200 as AuditReportResponse,
   GetApiAuditStatus200 as AuditStatusResponse,
-} from "../../../../life-reborn/src/generated/api.client.ts";
+} from "../../generated/gateway-types";
 
 export type { AuditReportResponse, AuditStatusResponse };
 
