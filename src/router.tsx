@@ -32,6 +32,7 @@ const GoosePage          = lazy(() => import("./pages/goose/GoosePage").then((m)
 const ConfigProviders    = lazy(() => import("./pages/config/ConfigProviders").then(m => ({ default: m.ConfigProviders })));
 const ConfigPlatform     = lazy(() => import("./pages/config/ConfigPlatform").then(m => ({ default: m.ConfigPlatform })));
 const ConfigPreferences  = lazy(() => import("./pages/config/ConfigPreferences").then(m => ({ default: m.ConfigPreferences })));
+const ProjectsOverview   = lazy(() => import("./pages/projects/ProjectsOverview").then(m => ({ default: m.ProjectsOverview })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -172,6 +173,12 @@ const configIndex       = createRoute({ getParentRoute: () => configLayout, path
 const configPlatform    = createRoute({ getParentRoute: () => configLayout, path: "/platform", component: ConfigPlatform });
 const configPreferences = createRoute({ getParentRoute: () => configLayout, path: "/preferences", component: ConfigPreferences });
 
+// Projects
+function ProjectsLayout() {
+  return <Suspense fallback={suspenseFallback}><ProjectsOverview /></Suspense>;
+}
+const projectsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/projects", component: ProjectsLayout });
+
 // Monitoring
 function MonitoringLayout() {
   return (
@@ -201,6 +208,7 @@ const routeTree = rootRoute.addChildren([
   ragLayout.addChildren([ragIndex,ragSearch,ragStats]),
   tracesLayout.addChildren([tracesIndex,tracesMetrics]),
   infraLayout.addChildren([infraIndex,infraNetwork,infraStorage]),
+  projectsRoute,
   searchRoute,
   governanceRoute,
   schematicLayout.addChildren([schematicIndex, schematicProjects]),

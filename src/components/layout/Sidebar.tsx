@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, MessageSquare, Zap, BookOpen, Activity, Server, ShieldCheck, Monitor, CircuitBoard, Search, Terminal, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FolderKanban, MessageSquare, Zap, BookOpen, Activity, Server, ShieldCheck, Monitor, CircuitBoard, Search, Terminal, Settings, LogOut } from "lucide-react";
 import { type ReactNode } from "react";
 import { useAuth } from "../AuthProvider";
 
@@ -7,6 +7,7 @@ interface NavItem { to: string; icon: ReactNode; label: string; }
 
 const navItems: NavItem[] = [
   { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
+  { to: "/projects", icon: <FolderKanban size={20} />, label: "Projects" },
   { to: "/chat", icon: <MessageSquare size={20} />, label: "Chat" },
   { to: "/search", icon: <Search size={20} />, label: "Search" },
   { to: "/providers", icon: <Zap size={20} />, label: "Providers" },

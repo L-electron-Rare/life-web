@@ -227,6 +227,22 @@ export const api = {
       }),
   },
 
+  projects: {
+    list: () =>
+      request<{
+        projects: Array<{
+          name: string;
+          client: string;
+          repo: string;
+          gates: Record<string, { status: string; date: string | null }>;
+          hardware: Record<string, string>;
+          firmware: Record<string, string>;
+          agents?: string[];
+        }>;
+        count: number;
+      }>("/projects"),
+  },
+
   // Goose agent
   goose: {
     health: () => request<{ status: string }>("/goose/health"),
