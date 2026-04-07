@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 
 const RUN_COLORS: Record<string, string> = {
@@ -20,10 +20,16 @@ function fmtDate(iso: string) {
 }
 
 export function ActivepiecesPanel() {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["infra-activepieces"],
     queryFn: api.monitoring.activepieces,
     refetchInterval: 30_000,
+  });
+
+  const triggerMutation = useMutation({
+    mutationFn: (flowName: string) => api.monitoring.triggerFlow(flowName),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["infra-activepieces"] }),
   });
 
   const flows = data?.flows ?? [];
@@ -44,6 +50,7 @@ export function ActivepiecesPanel() {
               <th className="pb-1 text-center">Status</th>
               <th className="pb-1 text-right">Last run</th>
               <th className="pb-1 text-center">Result</th>
+              <th className="pb-1 text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -59,10 +66,19 @@ export function ActivepiecesPanel() {
                 <td className={`py-1.5 text-center font-medium ${RUN_COLORS[f.last_run_status] ?? RUN_COLORS.UNKNOWN}`}>
                   {f.last_run_status}
                 </td>
+                <td className="py-1.5 text-center">
+                  <button
+                    onClick={() => triggerMutation.mutate(f.name)}
+                    disabled={triggerMutation.isPending}
+                    className="px-2 py-0.5 text-[10px] font-mono bg-accent-green/10 text-accent-green rounded hover:bg-accent-green/20 disabled:opacity-50 transition-colors"
+                  >
+                    {triggerMutation.isPending ? "…" : "Run"}
+                  </button>
+                </td>
               </tr>
             ))}
             {flows.length === 0 && !isLoading && (
-              <tr><td colSpan={4} className="py-4 text-center text-text-muted">Aucun flow</td></tr>
+              <tr><td colSpan={5} className="py-4 text-center text-text-muted">Aucun flow</td></tr>
             )}
           </tbody>
         </table>

@@ -166,6 +166,11 @@ export const api = {
     machines: () => request<GatewayInfraMachines>("/infra/machines"),
     gpu: () => request<GatewayInfraGpu>("/infra/gpu"),
     activepieces: () => request<GatewayInfraActivepieces>("/infra/activepieces"),
+    triggerFlow: (flowName: string) =>
+      request<{ status: string; flow_name: string; http_status: number }>(
+        "/infra/activepieces/trigger",
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ flow_name: flowName }) },
+      ),
   },
 
   // Stats timeseries
