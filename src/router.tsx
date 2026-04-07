@@ -29,6 +29,9 @@ const SchematicViewer    = lazy(() => import("./pages/schematic/SchematicViewer"
 const SchematicProjects  = lazy(() => import("./pages/schematic/SchematicProjects").then(m => ({ default: m.SchematicProjects })));
 const SearchPage         = lazy(() => import("./pages/search/SearchPage").then(m => ({ default: m.SearchPage })));
 const GoosePage          = lazy(() => import("./pages/goose/GoosePage").then((m) => ({ default: m.GoosePage })));
+const ConfigProviders    = lazy(() => import("./pages/config/ConfigProviders").then(m => ({ default: m.ConfigProviders })));
+const ConfigPlatform     = lazy(() => import("./pages/config/ConfigPlatform").then(m => ({ default: m.ConfigPlatform })));
+const ConfigPreferences  = lazy(() => import("./pages/config/ConfigPreferences").then(m => ({ default: m.ConfigPreferences })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -151,6 +154,24 @@ function GooseLayout() {
 }
 const gooseRoute = createRoute({ getParentRoute: () => rootRoute, path: "/goose", component: GooseLayout });
 
+// Config
+function ConfigLayout() {
+  return (
+    <>
+      <SubTabs tabs={[
+        { to: "/config", label: "Providers" },
+        { to: "/config/platform", label: "Platform" },
+        { to: "/config/preferences", label: "Preferences" },
+      ]} />
+      <Suspense fallback={suspenseFallback}><Outlet /></Suspense>
+    </>
+  );
+}
+const configLayout      = createRoute({ getParentRoute: () => rootRoute, path: "/config", component: ConfigLayout });
+const configIndex       = createRoute({ getParentRoute: () => configLayout, path: "/", component: ConfigProviders });
+const configPlatform    = createRoute({ getParentRoute: () => configLayout, path: "/platform", component: ConfigPlatform });
+const configPreferences = createRoute({ getParentRoute: () => configLayout, path: "/preferences", component: ConfigPreferences });
+
 // Monitoring
 function MonitoringLayout() {
   return (
@@ -184,6 +205,7 @@ const routeTree = rootRoute.addChildren([
   governanceRoute,
   schematicLayout.addChildren([schematicIndex, schematicProjects]),
   gooseRoute,
+  configLayout.addChildren([configIndex, configPlatform, configPreferences]),
   monitoringLayout.addChildren([monitoringIndex,monitoringMachines,monitoringGpu,monitoringContainers,monitoringAutomation]),
 ]);
 

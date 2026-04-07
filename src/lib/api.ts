@@ -196,6 +196,37 @@ export const api = {
     drc: (path?: string) => fetch(`https://cad.saillant.cc/kicad/drc${path ? `?project_path=${path}` : ""}`).then(r => r.json()),
   },
 
+  // Config
+  config: {
+    providers: () => request<Array<{
+      name: string;
+      source: "env" | "redis" | "unconfigured";
+      masked_key: string | null;
+      active: boolean;
+      priority: number;
+    }>>("/config/providers"),
+    updateProvider: (name: string, data: { api_key?: string; active?: boolean; priority?: number }) =>
+      request<{ name: string; source: string; masked_key: string | null; active: boolean; priority: number }>(
+        `/config/providers/${name}`,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) },
+      ),
+    testProvider: (name: string) =>
+      request<{ name: string; ok: boolean; latency_ms: number | null; error: string | null }>(
+        `/config/providers/${name}/test`,
+        { method: "POST" },
+      ),
+    platform: () => request<{
+      services: Array<{ name: string; ok: boolean; url: string; memory: string | null; error: string | null }>;
+    }>("/config/platform"),
+    preferences: () => request<{ default_model: string; rag_enabled: boolean; language: string }>("/config/preferences"),
+    savePreferences: (data: { default_model: string; rag_enabled: boolean; language: string }) =>
+      request<{ default_model: string; rag_enabled: boolean; language: string }>("/config/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+  },
+
   // Goose agent
   goose: {
     health: () => request<{ status: string }>("/goose/health"),

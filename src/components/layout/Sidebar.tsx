@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, MessageSquare, Zap, BookOpen, Activity, Server, ShieldCheck, Monitor, CircuitBoard, Search, Terminal, LogOut } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Zap, BookOpen, Activity, Server, ShieldCheck, Monitor, CircuitBoard, Search, Terminal, Settings, LogOut } from "lucide-react";
 import { type ReactNode } from "react";
 import { useAuth } from "../AuthProvider";
 
@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { to: "/governance", icon: <ShieldCheck size={20} />, label: "Governance" },
   { to: "/monitoring", icon: <Monitor size={20} />, label: "Monitoring" },
   { to: "/schematic", icon: <CircuitBoard size={20} />, label: "Schematic" },
+  { to: "/config", icon: <Settings size={20} />, label: "Config" },
   { to: "/goose", icon: <Terminal size={20} />, label: "Goose" },
 ];
 
