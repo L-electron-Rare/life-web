@@ -27,6 +27,7 @@ const ContainersMonPanel = lazy(() => import("./pages/monitoring/ContainersPanel
 const ActivepiecesPanel  = lazy(() => import("./pages/monitoring/ActivepiecesPanel").then(m => ({ default: m.ActivepiecesPanel })));
 const SchematicViewer    = lazy(() => import("./pages/schematic/SchematicViewer").then(m => ({ default: m.SchematicViewer })));
 const SearchPage         = lazy(() => import("./pages/search/SearchPage").then(m => ({ default: m.SearchPage })));
+const GoosePage          = lazy(() => import("./pages/goose/GoosePage").then((m) => ({ default: m.GoosePage })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -136,6 +137,12 @@ function SchematicLayout() {
 }
 const schematicRoute = createRoute({getParentRoute:()=>rootRoute,path:"/schematic",component:SchematicLayout});
 
+// Goose
+function GooseLayout() {
+  return <Suspense fallback={suspenseFallback}><GoosePage /></Suspense>;
+}
+const gooseRoute = createRoute({ getParentRoute: () => rootRoute, path: "/goose", component: GooseLayout });
+
 // Monitoring
 function MonitoringLayout() {
   return (
@@ -168,6 +175,7 @@ const routeTree = rootRoute.addChildren([
   searchRoute,
   governanceRoute,
   schematicRoute,
+  gooseRoute,
   monitoringLayout.addChildren([monitoringIndex,monitoringMachines,monitoringGpu,monitoringContainers,monitoringAutomation]),
 ]);
 

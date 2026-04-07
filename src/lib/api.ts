@@ -195,4 +195,28 @@ export const api = {
     projects: () => fetch("https://cad.saillant.cc/projects").then(r => r.json()),
     drc: (path?: string) => fetch(`https://cad.saillant.cc/kicad/drc${path ? `?project_path=${path}` : ""}`).then(r => r.json()),
   },
+
+  // Goose agent
+  goose: {
+    health: () => request<{ status: string }>("/goose/health"),
+    recipes: () =>
+      request<{
+        recipes: Array<{ name: string; description: string; steps: number }>;
+      }>("/goose/recipes"),
+    createSession: (workingDir = ".") =>
+      request<{ session_id: string; working_dir: string }>("/goose/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ working_dir: workingDir }),
+      }),
+    runRecipe: (name: string, workingDir = ".", variables?: Record<string, string>) =>
+      request<{
+        recipe: string;
+        results: Array<{ step: string; status: string; response?: string; error?: string }>;
+      }>(`/goose/recipes/${name}/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ working_dir: workingDir, variables }),
+      }),
+  },
 };
