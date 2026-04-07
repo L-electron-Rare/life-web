@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "../../lib/api";
+import ReactMarkdown from "react-markdown";
 
 export function GooseRecipes() {
   const [runningRecipe, setRunningRecipe] = useState<string | null>(null);
@@ -46,7 +47,11 @@ export function GooseRecipes() {
                 <span className={`text-xs font-mono ${r.status === "ok" ? "text-accent-green" : "text-accent-red"}`}>[{r.status}]</span>
                 <span className="text-text-primary text-xs font-mono">{r.step}</span>
               </div>
-              {r.response && <p className="text-text-muted text-xs whitespace-pre-wrap ml-4">{r.response}</p>}
+              {r.response && (
+                <div className="text-text-muted text-xs ml-4 prose prose-invert prose-xs prose-p:my-0.5 prose-pre:bg-surface-bg prose-code:text-accent-green">
+                  <ReactMarkdown>{r.response}</ReactMarkdown>
+                </div>
+              )}
               {r.error && <p className="text-accent-red text-xs ml-4">{r.error}</p>}
             </div>
           ))}

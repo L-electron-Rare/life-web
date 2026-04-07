@@ -15,6 +15,7 @@ export function useGooseStream() {
   const [events, setEvents] = useState<GooseEvent[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const createSession = useCallback(async (workingDir = ".") => {
     const token = await getAccessToken();
@@ -124,6 +125,10 @@ export function useGooseStream() {
             } catch { /* skip malformed */ }
           }
         }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Connection failed";
+        setError(message);
+        setEvents((prev) => [...prev, { method: "Error", content: message }]);
       } finally {
         setStreaming(false);
       }
@@ -132,6 +137,7 @@ export function useGooseStream() {
   );
 
   const clearEvents = useCallback(() => setEvents([]), []);
+  const clearError = useCallback(() => setError(null), []);
 
-  return { events, streaming, sessionId, createSession, sendPrompt, clearEvents };
+  return { events, streaming, sessionId, createSession, sendPrompt, clearEvents, error, clearError };
 }

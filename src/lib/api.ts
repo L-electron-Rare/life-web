@@ -218,5 +218,19 @@ export const api = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ working_dir: workingDir, variables }),
       }),
+    listSessions: () =>
+      request<{
+        sessions: Array<{
+          session_id: string;
+          working_dir: string;
+          created_at: string;
+          last_active: string;
+          message_count: number;
+        }>;
+      }>("/goose/sessions"),
+    deleteSession: (id: string) =>
+      request<{ deleted: boolean }>(`/goose/sessions/${id}`, {
+        method: "DELETE",
+      }),
   },
 };

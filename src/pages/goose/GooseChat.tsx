@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGooseStream, type GooseEvent } from "../../hooks/useGooseStream";
+import { api } from "../../lib/api";
+import ReactMarkdown from "react-markdown";
 
 function EventBubble({ event }: { event: GooseEvent }) {
   if (event.method === "UserMessage") {
@@ -14,8 +17,8 @@ function EventBubble({ event }: { event: GooseEvent }) {
   if (event.method === "AgentMessageChunk") {
     return (
       <div className="flex justify-start">
-        <div className="glass-card max-w-[70%] rounded-xl px-4 py-3">
-          <p className="text-text-primary text-sm whitespace-pre-wrap">{event.content}</p>
+        <div className="glass-card max-w-[70%] rounded-xl px-4 py-3 prose prose-invert prose-sm prose-p:my-1 prose-pre:bg-surface-bg prose-pre:border prose-pre:border-border-glass prose-code:text-accent-green prose-headings:text-text-primary">
+          <ReactMarkdown>{event.content || ""}</ReactMarkdown>
         </div>
       </div>
     );
@@ -43,6 +46,15 @@ function EventBubble({ event }: { event: GooseEvent }) {
       </div>
     );
   }
+  if (event.method === "Error") {
+    return (
+      <div className="flex justify-center">
+        <div className="glass-card max-w-[80%] rounded-xl px-4 py-3 border border-accent-red/30 bg-accent-red/5">
+          <p className="text-accent-red text-xs font-mono">{event.content}</p>
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 
@@ -50,6 +62,15 @@ export function GooseChat() {
   const { events, streaming, sessionId, createSession, sendPrompt, clearEvents } = useGooseStream();
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
+  const { data: sessionsData } = useQuery({
+    queryKey: ["goose-sessions"],
+    queryFn: api.goose.listSessions,
+    refetchInterval: 30_000,
+  });
+
+  void sessionsData; // available for future use
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,6 +85,7 @@ export function GooseChat() {
       sid = await createSession();
     }
     await sendPrompt(text, sid ?? undefined);
+    queryClient.invalidateQueries({ queryKey: ["goose-sessions"] });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
