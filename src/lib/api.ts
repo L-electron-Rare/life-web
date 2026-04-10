@@ -3,6 +3,17 @@ import type {
   AuditStatusResponse as GatewayAuditStatus,
 } from "../components/governance/types";
 import { getAccessToken } from "./auth";
+import { mcpPool } from "./mcp-client";
+import type {
+  DatasheetHit,
+  DatasheetSpecs,
+  DatasheetPage,
+  ComparisonResult,
+  IngestResult,
+} from "./datasheet-types";
+
+const DATASHEET_MCP_URL =
+  import.meta.env.VITE_DATASHEET_MCP_URL ?? "http://tower.local:8021/sse";
 import type {
   GetHealth200 as GatewayHealth,
   GetModels200 as GatewayModels,
@@ -70,6 +81,50 @@ export type SemanticSearchResult = Omit<GatewaySearch["results"][number], "metad
 export type SemanticSearchResponse = Omit<GatewaySearch, "results"> & {
   results: SemanticSearchResult[];
 };
+
+interface MCPToolResult {
+  content: Array<{ type: string; text?: string }>;
+}
+
+function extractText(result: unknown): string {
+  const r = result as MCPToolResult;
+  return r?.content?.[0]?.text ?? "";
+}
+
+function parseSearchResults(result: unknown): DatasheetHit[] {
+  const text = extractText(result);
+  if (!text || text.startsWith("No datasheets")) return [];
+  const hits: DatasheetHit[] = [];
+  const sectionPattern = /### \d+\.\s+(\S+)\s+\(page\s+(\d+),\s+score:\s+([\d.]+)\)\n([\s\S]*?)(?=\n###|\n*$)/g;
+  let match;
+  while ((match = sectionPattern.exec(text)) !== null) {
+    hits.push({
+      id: `${match[1]}_p${match[2]}`,
+      mpn: match[1],
+      manufacturer: "",
+      category: "",
+      page: parseInt(match[2], 10),
+      score: parseFloat(match[3]),
+      text: match[4].trim(),
+    });
+  }
+  return hits;
+}
+
+function parseSpecsResult(result: unknown): DatasheetSpecs {
+  const text = extractText(result);
+  const mpnMatch = text.match(/\*\*([^*]+)\s+Specs/);
+  return {
+    mpn: mpnMatch?.[1]?.trim() ?? "",
+    raw_text: text,
+    extracted_at: new Date().toISOString(),
+  };
+}
+
+function parsePageResult(result: unknown, mpn: string, page: number): DatasheetPage {
+  const text = extractText(result);
+  return { mpn, page, text };
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await getAccessToken();
@@ -246,6 +301,51 @@ export const api = {
         }>;
         count: number;
       }>("/projects"),
+  },
+
+  datasheets: {
+    // Reads: direct SSE to datasheet-mcp
+    search: async (query: string, topK = 10): Promise<DatasheetHit[]> => {
+      const result = await mcpPool.callTool(
+        "datasheet",
+        DATASHEET_MCP_URL,
+        "search_datasheet",
+        { query, top_k: topK }
+      );
+      return parseSearchResults(result);
+    },
+    getComponentSpecs: async (mpn: string): Promise<DatasheetSpecs> => {
+      const result = await mcpPool.callTool(
+        "datasheet",
+        DATASHEET_MCP_URL,
+        "get_component_specs",
+        { mpn }
+      );
+      return parseSpecsResult(result);
+    },
+    getPage: async (mpn: string, page: number): Promise<DatasheetPage> => {
+      const result = await mcpPool.callTool(
+        "datasheet",
+        DATASHEET_MCP_URL,
+        "get_page",
+        { mpn, page }
+      );
+      return parsePageResult(result, mpn, page);
+    },
+
+    // Writes: via life-reborn gateway
+    ingest: (mpn: string, url?: string): Promise<IngestResult> =>
+      request<IngestResult>("/api/datasheets/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mpn, url }),
+      }),
+    compare: (mpns: string[], criteria: string[]): Promise<ComparisonResult> =>
+      request<ComparisonResult>("/api/datasheets/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mpns, criteria }),
+      }),
   },
 
   // Goose agent
