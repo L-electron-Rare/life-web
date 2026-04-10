@@ -63,4 +63,32 @@ describe("MCPClientPool", () => {
 
     expect(result).toEqual(expected);
   });
+
+  it("retries on transient failure", async () => {
+    const pool = new MCPClientPool();
+    mockCallTool
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "ok" }] });
+
+    const result = await pool.callTool(
+      "datasheet",
+      "http://localhost:8021/sse",
+      "search_datasheet",
+      { query: "q" }
+    );
+
+    expect(mockCallTool).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ content: [{ type: "text", text: "ok" }] });
+  });
+
+  it("gives up after max retries", async () => {
+    const pool = new MCPClientPool();
+    mockCallTool.mockRejectedValue(new Error("network"));
+
+    await expect(
+      pool.callTool("datasheet", "http://localhost:8021/sse", "search_datasheet", { query: "q" })
+    ).rejects.toThrow("network");
+
+    expect(mockCallTool).toHaveBeenCalledTimes(3);
+  });
 });

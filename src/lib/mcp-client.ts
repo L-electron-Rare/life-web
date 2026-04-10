@@ -21,10 +21,24 @@ export class MCPClientPool {
     serverName: string,
     url: string,
     name: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    maxRetries = 3
   ): Promise<unknown> {
-    const client = await this.get(serverName, url);
-    return client.callTool({ name, arguments: args });
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const client = await this.get(serverName, url);
+        return await client.callTool({ name, arguments: args });
+      } catch (e) {
+        lastError = e as Error;
+        // Invalidate client on failure so we reconnect next time
+        this.clients.delete(serverName);
+        if (attempt < maxRetries - 1) {
+          await new Promise((r) => setTimeout(r, 100 * Math.pow(2, attempt)));
+        }
+      }
+    }
+    throw lastError;
   }
 }
 
