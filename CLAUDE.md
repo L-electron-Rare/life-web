@@ -30,7 +30,22 @@ pnpm run typecheck                  # tsc --noEmit (aussi aliasé `pnpm lint`)
 
 Toutes les routes sont définies dans un seul fichier via `createRouter`/`createRoute`. Chaque section a un composant layout avec `SubTabs` + `<Outlet/>` et des pages lazy-loadées via `React.lazy()`.
 
-9 sections top-level : Dashboard, Chat, Providers, RAG, Traces, Infra, Governance, Monitoring, Schematic. Pour ajouter une section : ajouter le lazy import, créer layout + routes, enregistrer dans `routeTree`, et ajouter une entrée nav dans `Sidebar.tsx`.
+10 sections top-level : Dashboard, Chat, Providers, RAG, Traces, Infra, Governance, Monitoring, Schematic, **Datasheets** (Phase 10). Pour ajouter une section : ajouter le lazy import, créer layout + routes, enregistrer dans `routeTree`, et ajouter une entrée nav dans `Sidebar.tsx`.
+
+### Datasheets panel (Phase 10)
+
+Route `/datasheets` — recherche visuelle de datasheets composants, preview PDF, comparaison. Module dans `src/pages/datasheets/` avec :
+- `DatasheetsPanel.tsx` (layout split vertical)
+- `DatasheetsSidebar.tsx` (liste + multi-select)
+- `DatasheetDetail.tsx` (specs + preview)
+- `DatasheetPagePreview.tsx` (ColPali pages + PDF viewer stub)
+- `DatasheetCompare.tsx` (modal comparaison Claude Vision)
+- `DatasheetSearchBar.tsx` (debounce 300ms)
+- 3 hooks TanStack Query dans `hooks/`
+- `src/lib/mcp-client.ts` — client MCP SSE direct vers `datasheet-mcp` (reads)
+- Writes (ingest, compare) via life-reborn proxy (`/api/datasheets/*`)
+
+Env: `VITE_DATASHEET_MCP_URL=http://tower.local:8021/sse`
 
 ### Couche API (`src/lib/api.ts`)
 
