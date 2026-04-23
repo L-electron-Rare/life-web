@@ -36,6 +36,7 @@ const ProjectsOverview   = lazy(() => import("./pages/projects/ProjectsOverview"
 const DatasheetsPanel    = lazy(() => import("./pages/datasheets/DatasheetsPanel").then((m) => ({ default: m.DatasheetsPanel })));
 const WorkflowList       = lazy(() => import("./pages/workflow/WorkflowList").then((m) => ({ default: m.WorkflowList })));
 const WorkflowDetail     = lazy(() => import("./pages/workflow/WorkflowDetail").then((m) => ({ default: m.WorkflowDetail })));
+const ProjectWizard      = lazy(() => import("./pages/workflow/ProjectWizard").then((m) => ({ default: m.ProjectWizard })));
 
 const suspenseFallback = (
   <div className="flex h-full items-center justify-center">
@@ -192,13 +193,17 @@ const datasheetsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/d
 function WorkflowLayout() {
   return (
     <>
-      <SubTabs tabs={[{ to: "/workflow", label: "Deliverables" }]} />
+      <SubTabs tabs={[
+        { to: "/workflow", label: "Deliverables" },
+        { to: "/workflow/new", label: "New project" },
+      ]} />
       <Suspense fallback={suspenseFallback}><Outlet /></Suspense>
     </>
   );
 }
 const workflowLayout = createRoute({ getParentRoute: () => rootRoute, path: "/workflow", component: WorkflowLayout });
 const workflowIndex  = createRoute({ getParentRoute: () => workflowLayout, path: "/", component: WorkflowList });
+const workflowNew    = createRoute({ getParentRoute: () => workflowLayout, path: "/new", component: ProjectWizard });
 const workflowDetail = createRoute({ getParentRoute: () => workflowLayout, path: "/$slug", component: WorkflowDetail });
 
 // Monitoring
@@ -238,7 +243,7 @@ const routeTree = rootRoute.addChildren([
   configLayout.addChildren([configIndex, configPlatform, configPreferences]),
   monitoringLayout.addChildren([monitoringIndex,monitoringMachines,monitoringGpu,monitoringContainers,monitoringAutomation]),
   datasheetsRoute,
-  workflowLayout.addChildren([workflowIndex, workflowDetail]),
+  workflowLayout.addChildren([workflowIndex, workflowNew, workflowDetail]),
 ]);
 
 export const router = createRouter({ routeTree });
