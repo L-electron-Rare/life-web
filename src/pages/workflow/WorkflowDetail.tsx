@@ -7,6 +7,7 @@ import {
   getWorkflowToken,
 } from "../../lib/workflowApi";
 import { StatePill, TypePill } from "./StatePill";
+import { ArtifactsPanel } from "./ArtifactsPanel";
 
 const GATES_BY_TYPE: Record<string, string[]> = {
   A: ["G-spec", "G-impl", "G-ship"],
@@ -108,6 +109,8 @@ export function WorkflowDetail() {
           ))}
         </div>
       </GlassCard>
+
+      <ArtifactsPanel slug={deliverable.slug} />
 
       <GlassCard>
         <h3 className="mb-3 text-sm font-semibold text-text-primary">

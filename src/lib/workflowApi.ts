@@ -62,6 +62,101 @@ export const byRecentFirst = (
   b: number | null | undefined
 ): number => (b ?? 0) - (a ?? 0);
 
+export interface ForgejoRun {
+  id: number;
+  name: string;
+  status: string;
+  conclusion: string | null;
+  created_at?: string;
+  updated_at?: string;
+  head_sha?: string;
+  html_url: string;
+}
+
+export interface ArtifactFile {
+  artifact_id: number;
+  artifact_name: string;
+  path: string;
+  size: number;
+  content_type: string;
+}
+
+export interface ArtifactBundle {
+  run?: {
+    id: number;
+    status: string;
+    conclusion: string | null;
+    html_url: string;
+  };
+  artifacts: Array<{ id: number; name: string; size: number }>;
+  files: ArtifactFile[];
+}
+
+export const workflowArtifactsApi = {
+  async listRuns(slug: string): Promise<ForgejoRun[]> {
+    const r = await fetch(`${ENGINE_URL}/deliverables/${slug}/runs`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  },
+
+  async listArtifacts(slug: string): Promise<ArtifactBundle> {
+    const r = await fetch(`${ENGINE_URL}/deliverables/${slug}/artifacts`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  },
+
+  fileUrl(slug: string, artifactId: number, path: string): string {
+    const params = new URLSearchParams({
+      artifact_id: String(artifactId),
+      path,
+    });
+    return `${ENGINE_URL}/deliverables/${slug}/artifact-file?${params.toString()}`;
+  },
+
+  async fetchFileText(
+    slug: string,
+    artifactId: number,
+    path: string
+  ): Promise<string> {
+    const r = await fetch(this.fileUrl(slug, artifactId, path));
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.text();
+  },
+
+  async fetchFileBlob(
+    slug: string,
+    artifactId: number,
+    path: string
+  ): Promise<Blob> {
+    const r = await fetch(this.fileUrl(slug, artifactId, path));
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.blob();
+  },
+};
+
+/** Classify a file by its extension for viewer dispatch. */
+export function fileKind(path: string):
+  | "kicad"
+  | "json"
+  | "csv"
+  | "markdown"
+  | "text"
+  | "pdf"
+  | "image"
+  | "binary" {
+  const lower = path.toLowerCase();
+  const ext = lower.split(".").pop() ?? "";
+  if (ext === "kicad_sch" || ext === "kicad_pcb") return "kicad";
+  if (ext === "kicad_pro" || ext === "json") return "json";
+  if (ext === "csv") return "csv";
+  if (ext === "md" || ext === "markdown") return "markdown";
+  if (ext === "pdf") return "pdf";
+  if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) return "image";
+  if (["txt", "log", "yml", "yaml", "xml", "net", "sh", "py", "ts", "tsx", "js"].includes(ext))
+    return "text";
+  return "binary";
+}
+
 export const workflowApi = {
   engineBase: ENGINE_URL,
 
