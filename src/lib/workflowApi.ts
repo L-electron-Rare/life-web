@@ -62,6 +62,67 @@ export const byRecentFirst = (
   b: number | null | undefined
 ): number => (b ?? 0) - (a ?? 0);
 
+export interface Project {
+  id?: number;
+  project_id: string;
+  slug: string;
+  name: string;
+  client_slug: string;
+  compliance_profile: string;
+  repo_url?: string;
+  description?: string;
+  has_hardware?: boolean;
+  has_firmware?: boolean;
+  firmware_target?: string;
+  created_at?: number | null;
+  created_by?: string;
+}
+
+export interface Client {
+  id?: number;
+  client_id: string;
+  slug: string;
+  name: string;
+  contact_email?: string;
+  notes?: string;
+}
+
+export interface CreateProjectPayload {
+  name: string;
+  slug: string;
+  client_slug: string;
+  client_name?: string;
+  description?: string;
+  compliance_profile: "prototype" | "iot_wifi_eu" | "iot_bt_fcc";
+  has_hardware: boolean;
+  has_firmware: boolean;
+  firmware_target: "esp32" | "stm32" | "rp2040" | "native" | "none";
+}
+
+export const workflowProjectsApi = {
+  async createProject(payload: CreateProjectPayload): Promise<{
+    slug: string;
+    repo: string;
+    clone_url: string;
+    deliverables: string[];
+  }> {
+    const t = getWorkflowToken();
+    const r = await fetch(`${ENGINE_URL}/api/project`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(t ? { Authorization: `Bearer ${t}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(`HTTP ${r.status}: ${txt}`);
+    }
+    return r.json();
+  },
+};
+
 export interface ForgejoRun {
   id: number;
   name: string;
