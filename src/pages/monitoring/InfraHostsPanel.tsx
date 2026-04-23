@@ -43,7 +43,12 @@ export function InfraHostsPanel() {
   return (
     <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
       {machines.map((m) => {
-        const liveness: "healthy" | "unhealthy" = m.error ? "unhealthy" : "healthy";
+        const liveness: "healthy" | "unhealthy" | "unknown" =
+          !m.error
+            ? "healthy"
+            : m.error === "metrics_not_parsed_yet"
+              ? "unknown"
+              : "unhealthy";
         const specLabel = [
           m.specs?.cores ? `${m.specs.cores} cores` : null,
           m.specs?.ram_gb ? `${m.specs.ram_gb} GiB` : null,

@@ -105,4 +105,46 @@ describe("InfraHostsPanel", () => {
       expect(screen.getByText("CILS")).toBeDefined();
     });
   });
+
+  it("shows unknown status when metrics not parsed yet", async () => {
+    vi.mocked(api.monitoring.machines).mockResolvedValue({
+      machines: [
+        {
+          name: "electron-server",
+          ip: "via-kxkm-ai",
+          role: "F4L",
+          services: [],
+          specs: { cores: 16, ram_gb: 64 },
+          cpu_percent: 0,
+          ram_used_gb: 0,
+          ram_total_gb: 64,
+          disk_used_gb: 0,
+          disk_total_gb: 1000,
+          uptime_hours: 0,
+          error: "metrics_not_parsed_yet",
+        },
+      ],
+    } as unknown as Awaited<ReturnType<typeof api.monitoring.machines>>);
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { container } = render(
+      createElement(
+        QueryClientProvider,
+        { client },
+        createElement(InfraHostsPanel),
+      ),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("electron-server")).toBeDefined();
+    });
+    // StatusDot should render with the "unknown" color (bg-text-muted),
+    // not the "healthy" one (bg-accent-green) — prevents the false positive
+    // where HTTP 200 alone paints the host green.
+    const dot = container.querySelector("span.bg-text-muted");
+    expect(dot).not.toBeNull();
+    expect(container.querySelector("span.bg-accent-green")).toBeNull();
+  });
 });
